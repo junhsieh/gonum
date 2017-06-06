@@ -44,41 +44,21 @@ func NewGetisOrd(data []float64, locality mat64.Matrix) GetisOrd {
 	return g
 }
 
-// Reset sets the receiver's data and locality to the non-nil parameter values.
-// data and locality must match dimensions as for NewGetisOrd, or if a nil
-// parameter is passed, the non-nil parameter must match the existing value held
-// by the receiver. If both data and locality are nil, Reset is a no-op.
+// Reset sets the receiver's data and locality. data and locality must match
+// dimensions as for NewGetisOrd.
 func (g *GetisOrd) Reset(data []float64, locality mat64.Matrix) {
-	switch {
-	case data == nil && locality == nil:
-		return
-	case data == nil:
-		r, c := locality.Dims()
-		if r != g.data.Len() || c != g.data.Len() {
-			panic("spatial: data length mismatch")
-		}
-		g.locality.Copy(locality)
-		return
-	case locality == nil:
-		r, c := g.locality.Dims()
-		if r != len(data) || c != len(data) {
-			panic("spatial: data length mismatch")
-		}
-		copy(g.data.RawVector().Data, data)
-	default:
-		r, c := locality.Dims()
-		if r != len(data) || c != len(data) {
-			panic("spatial: data length mismatch")
-		}
-		// FIXME(kortschak): There is no way to grow a Vector.
-		// Change this to reduce allocation load when that is added.
-		d := append(g.data.RawVector().Data[:0], data...)
-		g.data = mat64.NewVector(len(data), d)
-
-		g.locality.Reset()
-		g.locality = g.locality.Grow(r, c).(*mat64.Dense)
-		g.locality.Copy(locality)
+	r, c := locality.Dims()
+	if r != len(data) || c != len(data) {
+		panic("spatial: data length mismatch")
 	}
+	// FIXME(kortschak): There is no way to grow a Vector.
+	// Change this to reduce allocation load when that is added.
+	d := append(g.data.RawVector().Data[:0], data...)
+	g.data = mat64.NewVector(len(data), d)
+
+	g.locality.Reset()
+	g.locality = g.locality.Grow(r, c).(*mat64.Dense)
+	g.locality.Copy(locality)
 
 	g.mean = stat.Mean(data, nil)
 	var ss float64
@@ -86,6 +66,33 @@ func (g *GetisOrd) Reset(data []float64, locality mat64.Matrix) {
 		ss += v * v
 	}
 	g.s = ss/float64(len(data)) - g.mean*g.mean
+}
+
+// SetData sets the receiver's data. The lenght of data must match the existing
+// locality matrix held by the receiver.
+func (g *GetisOrd) SetData(data []float64) {
+	r, c := g.locality.Dims()
+	if r != len(data) || c != len(data) {
+		panic("spatial: data length mismatch")
+	}
+	copy(g.data.RawVector().Data, data)
+
+	g.mean = stat.Mean(data, nil)
+	var ss float64
+	for _, v := range data {
+		ss += v * v
+	}
+	g.s = ss/float64(len(data)) - g.mean*g.mean
+}
+
+// SetLocality sets the receiver's locality matrix. The dimensions of locality must
+// match the existing data slice held by the receiver.
+func (g *GetisOrd) SetLocality(locality mat64.Matrix) {
+	r, c := locality.Dims()
+	if r != g.data.Len() || c != g.data.Len() {
+		panic("spatial: data length mismatch")
+	}
+	g.locality.Copy(locality)
 }
 
 // Len returns the number of data points held by the receiver.
@@ -128,40 +135,41 @@ func NewMoran(data []float64, locality mat64.Matrix) Moran {
 	return m
 }
 
-// Reset sets the receiver's data and locality to the non-nil parameter values.
-// data and locality must match dimensions as for NewMoran, or if a nil
-// parameter is passed, the non-nil parameter must match the existing value held
-// by the receiver. If both data and locality are nil, Reset is a no-op.
+// Reset sets the receiver's data and locality. data and locality must match
+// dimensions as for NewMoran.
 func (m *Moran) Reset(data []float64, locality mat64.Matrix) {
-	switch {
-	case data == nil && locality == nil:
-		return
-	case data == nil:
-		r, c := locality.Dims()
-		if r != len(m.data) || c != len(m.data) {
-			panic("spatial: data length mismatch")
-		}
-		m.locality.Copy(locality)
-		return
-	case locality == nil:
-		r, c := m.locality.Dims()
-		if r != len(data) || c != len(data) {
-			panic("spatial: data length mismatch")
-		}
-		copy(m.data, data)
-	default:
-		r, c := locality.Dims()
-		if r != len(data) || c != len(data) {
-			panic("spatial: data length mismatch")
-		}
-		m.data = append(m.data[:0], data...)
-
-		m.locality.Reset()
-		m.locality = m.locality.Grow(r, c).(*mat64.Dense)
-		m.locality.Copy(locality)
+	r, c := locality.Dims()
+	if r != len(data) || c != len(data) {
+		panic("spatial: data length mismatch")
 	}
+	m.data = append(m.data[:0], data...)
+
+	m.locality.Reset()
+	m.locality = m.locality.Grow(r, c).(*mat64.Dense)
+	m.locality.Copy(locality)
 
 	m.mean = stat.Mean(m.data, nil)
+}
+
+// SetData sets the receiver's data. The lenght of data must match the existing
+// locality matrix held by the receiver.
+func (m *Moran) SetData(data []float64) {
+	r, c := m.locality.Dims()
+	if r != len(data) || c != len(data) {
+		panic("spatial: data length mismatch")
+	}
+	copy(m.data, data)
+	m.mean = stat.Mean(m.data, nil)
+}
+
+// SetLocality sets the receiver's locality matrix. The dimensions of locality must
+// match the existing data slice held by the receiver.
+func (m *Moran) SetLocality(locality mat64.Matrix) {
+	r, c := locality.Dims()
+	if r != len(m.data) || c != len(m.data) {
+		panic("spatial: data length mismatch")
+	}
+	m.locality.Copy(locality)
 }
 
 // I returns Moran's I for the data represented by the receiver.

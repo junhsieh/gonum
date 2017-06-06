@@ -118,57 +118,6 @@ var spatialTests = []struct {
 	},
 }
 
-func TestMoran(t *testing.T) {
-	const tol = 1e-14
-	for ti, test := range spatialTests {
-		rnd := rand.New(rand.NewSource(1))
-		data := make([]float64, test.n)
-		step := (test.to - test.from) / float64(test.n)
-		for i := range data {
-			data[i] = test.fn(test.from+step*float64(i), i, rnd)
-		}
-		locality := test.locality(test.n, test.wide, false)
-
-		m := NewMoran(data, locality)
-
-		gotI := m.I()
-		if !floats.EqualWithinAbsOrRel(gotI, test.wantMoranI, tol, tol) {
-			t.Errorf("unexpected Moran's I value for test %d: got:%v want:%v", ti, gotI, test.wantMoranI)
-		}
-		gotZ := m.Z()
-		if !floats.EqualWithinAbsOrRel(gotZ, test.wantZ, tol, tol) {
-			t.Errorf("unexpected Moran's I z-score for test %d: got:%v want:%v", ti, gotZ, test.wantZ)
-		}
-
-		for _, r := range []struct {
-			data     []float64
-			locality *mat64.Dense
-		}{
-			{},
-			{locality: locality},
-			{data: data},
-			{data: data, locality: locality},
-		} {
-			var locality mat64.Matrix
-			if r.locality != nil {
-				locality = r.locality
-			}
-			m.Reset(r.data, locality)
-
-			gotI := m.I()
-			if !floats.EqualWithinAbsOrRel(gotI, test.wantMoranI, tol, tol) {
-				t.Errorf("unexpected Moran's I value for test %d reset data=%t locality=%t: got:%v want:%v",
-					ti, r.data != nil, r.locality != nil, gotI, test.wantMoranI)
-			}
-			gotZ := m.Z()
-			if !floats.EqualWithinAbsOrRel(gotZ, test.wantZ, tol, tol) {
-				t.Errorf("unexpected Moran's I z-score for test %d reset data=%t locality=%t: got:%v want:%v",
-					ti, r.data != nil, r.locality != nil, gotZ, test.wantZ)
-			}
-		}
-	}
-}
-
 func TestGetisOrd(t *testing.T) {
 	for ti, test := range spatialTests {
 		rnd := rand.New(rand.NewSource(1))
@@ -196,16 +145,18 @@ func TestGetisOrd(t *testing.T) {
 			data     []float64
 			locality *mat64.Dense
 		}{
-			{},
 			{locality: locality},
 			{data: data},
 			{data: data, locality: locality},
 		} {
-			var locality mat64.Matrix
-			if r.locality != nil {
-				locality = r.locality
+			switch {
+			case r.data != nil && r.locality != nil:
+				g.Reset(r.data, r.locality)
+			case r.data != nil:
+				g.SetData(r.data)
+			case r.locality != nil:
+				g.SetLocality(r.locality)
 			}
-			g.Reset(r.data, locality)
 
 			nseg := getisOrdSegments(g)
 			if nseg != test.wantSegs {
@@ -243,4 +194,58 @@ func getisOrdSegments(g GetisOrd) int {
 		nseg++
 	}
 	return nseg
+}
+
+func TestMoran(t *testing.T) {
+	const tol = 1e-14
+	for ti, test := range spatialTests {
+		rnd := rand.New(rand.NewSource(1))
+		data := make([]float64, test.n)
+		step := (test.to - test.from) / float64(test.n)
+		for i := range data {
+			data[i] = test.fn(test.from+step*float64(i), i, rnd)
+		}
+		locality := test.locality(test.n, test.wide, false)
+
+		m := NewMoran(data, locality)
+
+		gotI := m.I()
+		if !floats.EqualWithinAbsOrRel(gotI, test.wantMoranI, tol, tol) {
+			t.Errorf("unexpected Moran's I value for test %d: got:%v want:%v", ti, gotI, test.wantMoranI)
+		}
+		gotZ := m.Z()
+		if !floats.EqualWithinAbsOrRel(gotZ, test.wantZ, tol, tol) {
+			t.Errorf("unexpected Moran's I z-score for test %d: got:%v want:%v", ti, gotZ, test.wantZ)
+		}
+
+		for _, r := range []struct {
+			data     []float64
+			locality *mat64.Dense
+		}{
+			{locality: locality},
+			{data: data},
+			{data: data, locality: locality},
+		} {
+			switch {
+			case r.data != nil && r.locality != nil:
+				m.Reset(r.data, r.locality)
+			case r.data != nil:
+				m.SetData(r.data)
+			case r.locality != nil:
+				m.SetLocality(r.locality)
+			}
+
+			gotI := m.I()
+			if !floats.EqualWithinAbsOrRel(gotI, test.wantMoranI, tol, tol) {
+				t.Errorf("unexpected Moran's I value for test %d reset data=%t locality=%t: got:%v want:%v",
+					ti, r.data != nil, r.locality != nil, gotI, test.wantMoranI)
+			}
+			gotZ := m.Z()
+			if !floats.EqualWithinAbsOrRel(gotZ, test.wantZ, tol, tol) {
+				t.Errorf("unexpected Moran's I z-score for test %d reset data=%t locality=%t: got:%v want:%v",
+					ti, r.data != nil, r.locality != nil, gotZ, test.wantZ)
+			}
+		}
+
+	}
 }
