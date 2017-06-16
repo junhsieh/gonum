@@ -7,7 +7,7 @@ package spatial // import "gonum.org/v1/gonum/stat/spatial"
 import (
 	"math"
 
-	"gonum.org/v1/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -15,8 +15,8 @@ import (
 
 // GetisOrd performs Local Getis-Ord G*i statistic calculation.
 type GetisOrd struct {
-	data     *mat64.Vector
-	locality *mat64.Dense
+	data     *mat.Vector
+	locality *mat.Dense
 
 	mean, s float64
 }
@@ -24,7 +24,10 @@ type GetisOrd struct {
 // NewGetisOrd returns a GetisOrd based on the provided data and locality matrix.
 // NewGetisOrd will panic if locality is not a square matrix with dimensions the
 // same as the length of data.
-func NewGetisOrd(data []float64, locality mat64.Matrix) GetisOrd {
+func NewGetisOrd(data, weights []float64, locality mat.Matrix) GetisOrd {
+	if weights != nil {
+		panic("spatial: weighted data not yet implemented")
+	}
 	r, c := locality.Dims()
 	if r != len(data) || c != len(data) {
 		panic("spatial: data length mismatch")
@@ -33,9 +36,9 @@ func NewGetisOrd(data []float64, locality mat64.Matrix) GetisOrd {
 	var g GetisOrd
 	d := make([]float64, len(data))
 	copy(d, data)
-	g.data = mat64.NewVector(len(data), d)
+	g.data = mat.NewVector(len(data), d)
 
-	g.locality = mat64.DenseCopyOf(locality)
+	g.locality = mat.DenseCopyOf(locality)
 	g.mean = stat.Mean(data, nil)
 	var ss float64
 	for _, v := range data {
@@ -53,10 +56,10 @@ func (g GetisOrd) Len() int { return g.data.Len() }
 // returned value is a z-score.
 func (g GetisOrd) Gstar(i int) float64 {
 	wi := g.locality.RowView(i)
-	ws := g.mean * mat64.Sum(wi)
+	ws := g.mean * mat.Sum(wi)
 	n := float64(g.data.Len())
-	num := mat64.Dot(wi, g.data) - ws
-	den := g.s * math.Sqrt((n*mat64.Dot(wi, wi)-ws*ws)/(n-1))
+	num := mat.Dot(wi, g.data) - ws
+	den := g.s * math.Sqrt((n*mat.Dot(wi, wi)-ws*ws)/(n-1))
 	return num / den
 }
 
@@ -65,7 +68,10 @@ func (g GetisOrd) Gstar(i int) float64 {
 // values.
 //
 // See https://en.wikipedia.org/wiki/Moran%27s_I.
-func GlobalMoransI(data []float64, locality mat64.Matrix) (i, v, z float64) {
+func GlobalMoransI(data, weights []float64, locality mat.Matrix) (i, v, z float64) {
+	if weights != nil {
+		panic("spatial: weighted data not yet implemented")
+	}
 	if r, c := locality.Dims(); r != len(data) || c != len(data) {
 		panic("spatial: data length mismatch")
 	}
@@ -81,7 +87,7 @@ func GlobalMoransI(data []float64, locality mat64.Matrix) (i, v, z float64) {
 			num += locality.At(i, j) * zi * zj
 		}
 	}
-	i = (float64(len(data)) * num) / (mat64.Sum(locality) * den)
+	i = (float64(len(data)) * num) / (mat.Sum(locality) * den)
 
 	// Calculate Moran's E(I) for the data.
 	e := -1 / float64(len(data)-1)

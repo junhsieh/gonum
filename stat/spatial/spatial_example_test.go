@@ -7,13 +7,13 @@ package spatial_test
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/spatial"
 )
 
 func ExampleGlobalMoransI_1() {
 	data := []float64{0, 0, 0, 1, 1, 1, 0, 1, 0, 0}
-	locality := mat64.NewDense(10, 10, []float64{
+	locality := mat.NewDense(10, 10, []float64{
 		0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
 		1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
 		0, 1, 0, 1, 0, 0, 0, 0, 0, 0,
@@ -26,7 +26,7 @@ func ExampleGlobalMoransI_1() {
 		0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
 	})
 
-	i, _, z := spatial.GlobalMoransI(data, locality)
+	i, _, z := spatial.GlobalMoransI(data, nil, locality)
 
 	fmt.Printf("Moran's I=%.4v z-score=%.4v\n", i, z)
 
@@ -37,7 +37,7 @@ func ExampleGlobalMoransI_1() {
 
 func ExampleGetisOrd() {
 	data := []float64{0, 0, 0, 1, 1, 1, 0, 1, 0, 0}
-	locality := mat64.NewDense(10, 10, []float64{
+	locality := mat.NewDense(10, 10, []float64{
 		1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
 		1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
 		0, 1, 1, 1, 0, 0, 0, 0, 0, 0,
@@ -50,7 +50,7 @@ func ExampleGetisOrd() {
 		0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
 	})
 
-	g := spatial.NewGetisOrd(data, locality)
+	g := spatial.NewGetisOrd(data, nil, locality)
 
 	for i, v := range data {
 		fmt.Printf("v=%v G*i=% .4v\n", v, g.Gstar(i))

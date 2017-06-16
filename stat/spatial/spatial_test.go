@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 )
 
-func simpleAdjacency(n, wide int, diag bool) *mat64.Dense {
-	m := mat64.NewDense(n, n, nil)
+func simpleAdjacency(n, wide int, diag bool) *mat.Dense {
+	m := mat.NewDense(n, n, nil)
 	for i := 0; i < n; i++ {
 		for j := 1; j <= wide; j++ {
 			if j > i {
@@ -34,7 +34,7 @@ var spatialTests = []struct {
 	from, to float64
 	n, wide  int
 	fn       func(float64, int, *rand.Rand) float64
-	locality func(n, wide int, diag bool) *mat64.Dense
+	locality func(n, wide int, diag bool) *mat.Dense
 
 	wantMoranI float64
 	wantZ      float64
@@ -128,7 +128,7 @@ func TestGetisOrd(t *testing.T) {
 		}
 		locality := test.locality(test.n, test.wide, true)
 
-		g := NewGetisOrd(data, locality)
+		g := NewGetisOrd(data, nil, locality)
 
 		if g.Len() != test.n {
 			t.Errorf("unexpected length: got:%d want:%d", g.Len(), test.n)
@@ -183,7 +183,7 @@ func TestGlobalMoransI(t *testing.T) {
 		}
 		locality := test.locality(test.n, test.wide, false)
 
-		gotI, _, gotZ := GlobalMoransI(data, locality)
+		gotI, _, gotZ := GlobalMoransI(data, nil, locality)
 
 		if !floats.EqualWithinAbsOrRel(gotI, test.wantMoranI, tol, tol) {
 			t.Errorf("unexpected Moran's I value for test %d: got:%v want:%v", ti, gotI, test.wantMoranI)

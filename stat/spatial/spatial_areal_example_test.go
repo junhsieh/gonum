@@ -9,7 +9,7 @@ import (
 	"math"
 
 	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/spatial"
 )
 
@@ -28,7 +28,7 @@ func (e Euclid) At(i, j int) float64 {
 	y := float64(j/e.x - i/e.x)
 	return 1 / math.Hypot(x, y)
 }
-func (e Euclid) T() mat64.Matrix { return mat64.Transpose{e} }
+func (e Euclid) T() mat.Matrix { return mat.Transpose{e} }
 
 func ExampleGlobalMoransI_2() {
 	locality := Euclid{10, 10}
@@ -45,7 +45,7 @@ func ExampleGlobalMoransI_2() {
 		0, 0, 1, 0, 1, 0, 1, 0, 0, 0,
 		1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
 	}
-	i1, _, z1 := spatial.GlobalMoransI(data1, locality)
+	i1, _, z1 := spatial.GlobalMoransI(data1, nil, locality)
 
 	data2 := []float64{
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -59,7 +59,7 @@ func ExampleGlobalMoransI_2() {
 		0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
 		0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
 	}
-	i2, _, z2 := spatial.GlobalMoransI(data2, locality)
+	i2, _, z2 := spatial.GlobalMoransI(data2, nil, locality)
 
 	fmt.Printf("%v sparse points Moran's I=%.4v z-score=%.4v\n", floats.Sum(data1), i1, z1)
 	fmt.Printf("%v clustered points Moran's I=%.4v z-score=%.4v\n", floats.Sum(data2), i2, z2)
