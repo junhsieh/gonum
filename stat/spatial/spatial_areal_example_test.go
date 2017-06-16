@@ -30,7 +30,7 @@ func (e Euclid) At(i, j int) float64 {
 }
 func (e Euclid) T() mat64.Matrix { return mat64.Transpose{e} }
 
-func ExampleMoran_2() {
+func ExampleGlobalMoransI_2() {
 	locality := Euclid{10, 10}
 
 	data1 := []float64{
@@ -45,7 +45,7 @@ func ExampleMoran_2() {
 		0, 0, 1, 0, 1, 0, 1, 0, 0, 0,
 		1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
 	}
-	m1 := spatial.NewMoran(data1, locality)
+	i1, _, z1 := spatial.GlobalMoransI(data1, locality)
 
 	data2 := []float64{
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -59,10 +59,10 @@ func ExampleMoran_2() {
 		0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
 		0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
 	}
-	m2 := spatial.NewMoran(data2, locality)
+	i2, _, z2 := spatial.GlobalMoransI(data2, locality)
 
-	fmt.Printf("%v sparse points Moran's I=%.4v z-score=%.4v\n", floats.Sum(data1), m1.I(), m1.Z())
-	fmt.Printf("%v clustered points Moran's I=%.4v z-score=%.4v\n", floats.Sum(data2), m2.I(), m2.Z())
+	fmt.Printf("%v sparse points Moran's I=%.4v z-score=%.4v\n", floats.Sum(data1), i1, z1)
+	fmt.Printf("%v clustered points Moran's I=%.4v z-score=%.4v\n", floats.Sum(data2), i2, z2)
 
 	// Output:
 	//

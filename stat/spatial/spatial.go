@@ -11,6 +11,8 @@ import (
 	"gonum.org/v1/gonum/stat"
 )
 
+// TODO(kortschak): Make use of banded matrices when they exist in mat.
+
 // GetisOrd performs Local Getis-Ord G*i statistic calculation.
 type GetisOrd struct {
 	data     *mat64.Vector
@@ -44,57 +46,6 @@ func NewGetisOrd(data []float64, locality mat64.Matrix) GetisOrd {
 	return g
 }
 
-// Reset sets the receiver's data and locality. data and locality must match
-// dimensions as for NewGetisOrd.
-func (g *GetisOrd) Reset(data []float64, locality mat64.Matrix) {
-	r, c := locality.Dims()
-	if r != len(data) || c != len(data) {
-		panic("spatial: data length mismatch")
-	}
-	// FIXME(kortschak): There is no way to grow a Vector.
-	// Change this to reduce allocation load when that is added.
-	d := append(g.data.RawVector().Data[:0], data...)
-	g.data = mat64.NewVector(len(data), d)
-
-	g.locality.Reset()
-	g.locality = g.locality.Grow(r, c).(*mat64.Dense)
-	g.locality.Copy(locality)
-
-	g.mean = stat.Mean(data, nil)
-	var ss float64
-	for _, v := range data {
-		ss += v * v
-	}
-	g.s = ss/float64(len(data)) - g.mean*g.mean
-}
-
-// SetData sets the receiver's data. The lenght of data must match the existing
-// locality matrix held by the receiver.
-func (g *GetisOrd) SetData(data []float64) {
-	r, c := g.locality.Dims()
-	if r != len(data) || c != len(data) {
-		panic("spatial: data length mismatch")
-	}
-	copy(g.data.RawVector().Data, data)
-
-	g.mean = stat.Mean(data, nil)
-	var ss float64
-	for _, v := range data {
-		ss += v * v
-	}
-	g.s = ss/float64(len(data)) - g.mean*g.mean
-}
-
-// SetLocality sets the receiver's locality matrix. The dimensions of locality must
-// match the existing data slice held by the receiver.
-func (g *GetisOrd) SetLocality(locality mat64.Matrix) {
-	r, c := locality.Dims()
-	if r != g.data.Len() || c != g.data.Len() {
-		panic("spatial: data length mismatch")
-	}
-	g.locality.Copy(locality)
-}
-
 // Len returns the number of data points held by the receiver.
 func (g GetisOrd) Len() int { return g.data.Len() }
 
@@ -109,105 +60,47 @@ func (g GetisOrd) Gstar(i int) float64 {
 	return num / den
 }
 
-// Moran performs Global Moran's I calculation of spatial autocorrelation.
+// GlobalMoransI performs Global Moran's I calculation of spatial autocorrelation.
+// GlobalMoransI returns Moran's I, Var(I) and the z-score associated with those
+// values.
 //
 // See https://en.wikipedia.org/wiki/Moran%27s_I.
-type Moran struct {
-	data     []float64
-	mean     float64
-	locality *mat64.Dense
-}
-
-// NewMoran returns a new Moran based on the provided data and locality matrix.
-// NewMoran will panic if locality is not a square matrix with dimensions the
-// same as the length of data.
-func NewMoran(data []float64, locality mat64.Matrix) Moran {
-	r, c := locality.Dims()
-	if r != len(data) || c != len(data) {
+func GlobalMoransI(data []float64, locality mat64.Matrix) (i, v, z float64) {
+	if r, c := locality.Dims(); r != len(data) || c != len(data) {
 		panic("spatial: data length mismatch")
 	}
-	var m Moran
-	m.data = make([]float64, len(data))
-	copy(m.data, data)
-	m.mean = stat.Mean(m.data, nil)
-	m.locality = mat64.DenseCopyOf(locality)
+	mean := stat.Mean(data, nil)
 
-	return m
-}
-
-// Reset sets the receiver's data and locality. data and locality must match
-// dimensions as for NewMoran.
-func (m *Moran) Reset(data []float64, locality mat64.Matrix) {
-	r, c := locality.Dims()
-	if r != len(data) || c != len(data) {
-		panic("spatial: data length mismatch")
-	}
-	m.data = append(m.data[:0], data...)
-
-	m.locality.Reset()
-	m.locality = m.locality.Grow(r, c).(*mat64.Dense)
-	m.locality.Copy(locality)
-
-	m.mean = stat.Mean(m.data, nil)
-}
-
-// SetData sets the receiver's data. The lenght of data must match the existing
-// locality matrix held by the receiver.
-func (m *Moran) SetData(data []float64) {
-	r, c := m.locality.Dims()
-	if r != len(data) || c != len(data) {
-		panic("spatial: data length mismatch")
-	}
-	copy(m.data, data)
-	m.mean = stat.Mean(m.data, nil)
-}
-
-// SetLocality sets the receiver's locality matrix. The dimensions of locality must
-// match the existing data slice held by the receiver.
-func (m *Moran) SetLocality(locality mat64.Matrix) {
-	r, c := locality.Dims()
-	if r != len(m.data) || c != len(m.data) {
-		panic("spatial: data length mismatch")
-	}
-	m.locality.Copy(locality)
-}
-
-// I returns Moran's I for the data represented by the receiver.
-func (m Moran) I() float64 {
+	// Calculate Moran's I for the data.
 	var num, den float64
-	for i, xi := range m.data {
-		zi := xi - m.mean
+	for i, xi := range data {
+		zi := xi - mean
 		den += zi * zi
-		for j, xj := range m.data {
-			zj := xj - m.mean
-			num += m.locality.At(i, j) * zi * zj
+		for j, xj := range data {
+			zj := xj - mean
+			num += locality.At(i, j) * zi * zj
 		}
 	}
-	return (float64(len(m.data)) * num) / (mat64.Sum(m.locality) * den)
-}
+	i = (float64(len(data)) * num) / (mat64.Sum(locality) * den)
 
-// E returns Moran's E(I) for the data represented by the receiver.
-func (m Moran) E() float64 {
-	return -1 / float64(len(m.data)-1)
-}
+	// Calculate Moran's E(I) for the data.
+	e := -1 / float64(len(data)-1)
 
-// Var returns Moran's Var(I) for the data represented by the receiver.
-func (m Moran) Var() float64 {
-	// From http://pro.arcgis.com/en/pro-app/tool-reference/spatial-statistics/h-how-spatial-autocorrelation-moran-s-i-spatial-st.htm
-	// and http://pro.arcgis.com/en/pro-app/tool-reference/spatial-statistics/h-global-morans-i-additional-math.htm
-
+	// Calculate Moran's Var(I) for the data.
+	//  http://pro.arcgis.com/en/pro-app/tool-reference/spatial-statistics/h-how-spatial-autocorrelation-moran-s-i-spatial-st.htm
+	//  http://pro.arcgis.com/en/pro-app/tool-reference/spatial-statistics/h-global-morans-i-additional-math.htm
 	var s0, s1, s2 float64
 	var var2, var4 float64
-	for i, v := range m.data {
-		v -= m.mean
+	for i, v := range data {
+		v -= mean
 		v *= v
 		var2 += v
 		var4 += v * v
 
 		var p2 float64
-		for j := range m.data {
-			wij := m.locality.At(i, j)
-			wji := m.locality.At(j, i)
+		for j := range data {
+			wij := locality.At(i, j)
+			wji := locality.At(j, i)
 
 			s0 += wij
 
@@ -220,18 +113,16 @@ func (m Moran) Var() float64 {
 	}
 	s1 *= 0.5
 
-	n := float64(len(m.data))
+	n := float64(len(data))
 	a := n * ((n*n-3*n+3)*s1 - n*s2 + 3*s0*s0)
 	c := (n - 1) * (n - 2) * (n - 3) * s0 * s0
 	d := var4 / (var2 * var2)
 	b := d * ((n*n-n)*s1 - 2*n*s2 + 6*s0*s0)
 
-	e := m.E()
+	v = (a-b)/c - e*e
 
-	return (a-b)/c - e*e
-}
+	// Calculate z-score associated with Moran's I for the data.
+	z = (i - e) / math.Sqrt(v)
 
-// Z returns the z-score associated with Moran's I for the data represented by the receiver.
-func (m Moran) Z() float64 {
-	return (m.I() - m.E()) / math.Sqrt(m.Var())
+	return i, v, z
 }

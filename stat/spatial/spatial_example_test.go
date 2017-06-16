@@ -11,7 +11,7 @@ import (
 	"gonum.org/v1/gonum/stat/spatial"
 )
 
-func ExampleMoran_1() {
+func ExampleGlobalMoransI_1() {
 	data := []float64{0, 0, 0, 1, 1, 1, 0, 1, 0, 0}
 	locality := mat64.NewDense(10, 10, []float64{
 		0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -26,9 +26,9 @@ func ExampleMoran_1() {
 		0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
 	})
 
-	m := spatial.NewMoran(data, locality)
+	i, _, z := spatial.GlobalMoransI(data, locality)
 
-	fmt.Printf("Moran's I=%.4v z-score=%.4v\n", m.I(), m.Z())
+	fmt.Printf("Moran's I=%.4v z-score=%.4v\n", i, z)
 
 	// Output:
 	//
