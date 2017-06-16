@@ -352,7 +352,7 @@ func (g *ReducedDirected) To(v graph.Node) []graph.Node {
 func (g *ReducedDirected) HasEdgeBetween(x, y graph.Node) bool {
 	xid := x.ID()
 	yid := y.ID()
-	if xid == yid || xid != int64(int(xid)) || yid != int64(int(yid)) {
+	if xid == yid || !isValidID(xid) || !isValidID(yid) {
 		return false
 	}
 	_, ok := g.weights[[2]int{int(xid), int(yid)}]
@@ -367,7 +367,7 @@ func (g *ReducedDirected) HasEdgeBetween(x, y graph.Node) bool {
 func (g *ReducedDirected) HasEdgeFromTo(u, v graph.Node) bool {
 	uid := u.ID()
 	vid := v.ID()
-	if uid == vid || uid != int64(int(uid)) || vid != int64(int(vid)) {
+	if uid == vid || !isValidID(uid) || !isValidID(vid) {
 		return false
 	}
 	_, ok := g.weights[[2]int{int(uid), int(vid)}]
@@ -379,7 +379,7 @@ func (g *ReducedDirected) HasEdgeFromTo(u, v graph.Node) bool {
 func (g *ReducedDirected) Edge(u, v graph.Node) graph.Edge {
 	uid := u.ID()
 	vid := v.ID()
-	if uid == vid || uid != int64(int(uid)) || vid != int64(int(vid)) {
+	if uid == vid || !isValidID(uid) || !isValidID(vid) {
 		return nil
 	}
 	w, ok := g.weights[[2]int{int(uid), int(vid)}]
@@ -396,7 +396,7 @@ func (g *ReducedDirected) Edge(u, v graph.Node) graph.Edge {
 func (g *ReducedDirected) Weight(x, y graph.Node) (w float64, ok bool) {
 	xid := x.ID()
 	yid := y.ID()
-	if xid != int64(int(xid)) || yid != int64(int(yid)) {
+	if !isValidID(xid) || !isValidID(yid) {
 		return 0, false
 	}
 	if xid == yid {

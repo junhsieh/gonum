@@ -519,7 +519,7 @@ func (g directedLayerHandle) HasEdgeBetween(x, y graph.Node) bool {
 	if xid == yid {
 		return false
 	}
-	if xid == yid || xid != int64(int(xid)) || yid != int64(int(yid)) {
+	if xid == yid || !isValidID(xid) || !isValidID(yid) {
 		return false
 	}
 	_, ok := g.multiplex.layers[g.layer].weights[[2]int{int(xid), int(yid)}]
@@ -534,7 +534,7 @@ func (g directedLayerHandle) HasEdgeBetween(x, y graph.Node) bool {
 func (g directedLayerHandle) HasEdgeFromTo(u, v graph.Node) bool {
 	uid := u.ID()
 	vid := v.ID()
-	if uid == vid || uid != int64(int(uid)) || vid != int64(int(vid)) {
+	if uid == vid || !isValidID(uid) || !isValidID(vid) {
 		return false
 	}
 	_, ok := g.multiplex.layers[g.layer].weights[[2]int{int(uid), int(vid)}]
@@ -546,7 +546,7 @@ func (g directedLayerHandle) HasEdgeFromTo(u, v graph.Node) bool {
 func (g directedLayerHandle) Edge(u, v graph.Node) graph.Edge {
 	uid := u.ID()
 	vid := v.ID()
-	if uid == vid || uid != int64(int(uid)) || vid != int64(int(vid)) {
+	if uid == vid || !isValidID(uid) || !isValidID(vid) {
 		return nil
 	}
 	w, ok := g.multiplex.layers[g.layer].weights[[2]int{int(uid), int(vid)}]
@@ -568,7 +568,7 @@ func (g directedLayerHandle) EdgeBetween(x, y graph.Node) graph.Edge {
 func (g directedLayerHandle) Weight(x, y graph.Node) (w float64, ok bool) {
 	xid := x.ID()
 	yid := y.ID()
-	if xid != int64(int(xid)) || yid != int64(int(yid)) {
+	if !isValidID(xid) || !isValidID(yid) {
 		return 0, false
 	}
 	if xid == yid {

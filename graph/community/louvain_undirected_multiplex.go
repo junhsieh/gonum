@@ -473,7 +473,7 @@ func (g undirectedLayerHandle) From(u graph.Node) []graph.Node {
 func (g undirectedLayerHandle) HasEdgeBetween(x, y graph.Node) bool {
 	xid := x.ID()
 	yid := y.ID()
-	if xid == yid || xid != int64(int(xid)) || yid != int64(int(yid)) {
+	if xid == yid || !isValidID(xid) || !isValidID(yid) {
 		return false
 	}
 	if xid > yid {
@@ -488,7 +488,7 @@ func (g undirectedLayerHandle) HasEdgeBetween(x, y graph.Node) bool {
 func (g undirectedLayerHandle) Edge(u, v graph.Node) graph.Edge {
 	uid := u.ID()
 	vid := v.ID()
-	if uid == vid || uid != int64(int(uid)) || vid != int64(int(vid)) {
+	if uid == vid || !isValidID(uid) || !isValidID(vid) {
 		return nil
 	}
 	if vid < uid {
@@ -513,7 +513,7 @@ func (g undirectedLayerHandle) EdgeBetween(x, y graph.Node) graph.Edge {
 func (g undirectedLayerHandle) Weight(x, y graph.Node) (w float64, ok bool) {
 	xid := x.ID()
 	yid := y.ID()
-	if xid != int64(int(xid)) || yid != int64(int(yid)) {
+	if !isValidID(xid) || !isValidID(yid) {
 		return 0, false
 	}
 	if xid == yid {

@@ -230,6 +230,14 @@ type directedEdges struct {
 	weights   map[[2]int]float64
 }
 
+// isValidID returns whether id is a valid ID for a community,
+// multiplexCommunity or node. These are all graph.Node types
+// stored in []T with a mapping between their index and their ID
+// so IDs must be positive and fit within the int type.
+func isValidID(id int64) bool {
+	return id == int64(int(id)) && id >= 0
+}
+
 // community is a reduced graph node describing its membership.
 type community struct {
 	// community graphs are internal, in-memory
