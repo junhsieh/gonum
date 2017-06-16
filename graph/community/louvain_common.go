@@ -232,6 +232,8 @@ type directedEdges struct {
 
 // community is a reduced graph node describing its membership.
 type community struct {
+	// community graphs are internal, in-memory
+	// with dense IDs, so id is always an int.
 	id int
 
 	nodes []graph.Node
@@ -239,7 +241,7 @@ type community struct {
 	weight float64
 }
 
-func (n community) ID() int { return n.id }
+func (n community) ID() int64 { return int64(n.id) }
 
 // edge is a reduced graph edge.
 type edge struct {
@@ -253,6 +255,8 @@ func (e edge) Weight() float64  { return e.weight }
 
 // multiplexCommunity is a reduced multiplex graph node describing its membership.
 type multiplexCommunity struct {
+	// community graphs are internal, in-memory
+	// with dense IDs, so id is always an int.
 	id int
 
 	nodes []graph.Node
@@ -260,7 +264,7 @@ type multiplexCommunity struct {
 	weights []float64
 }
 
-func (n multiplexCommunity) ID() int { return n.id }
+func (n multiplexCommunity) ID() int64 { return int64(n.id) }
 
 // multiplexEdge is a reduced graph edge for a multiplex graph.
 type multiplexEdge struct {
@@ -278,10 +282,11 @@ type commIdx struct {
 	node      int
 }
 
-// node is defined to avoid an import of .../graph/simple.
+// node is defined to avoid an import of .../graph/simple. node is
+// used in in-memory, dense ID graphs and so is always an int.
 type node int
 
-func (n node) ID() int { return int(n) }
+func (n node) ID() int64 { return int64(n) }
 
 // minTaker is a set iterator.
 type minTaker interface {
