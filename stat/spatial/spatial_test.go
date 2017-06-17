@@ -128,14 +128,7 @@ func TestGetisOrd(t *testing.T) {
 		}
 		locality := test.locality(test.n, test.wide, true)
 
-		g := NewGetisOrd(data, nil, locality)
-
-		if g.Len() != test.n {
-			t.Errorf("unexpected length: got:%d want:%d", g.Len(), test.n)
-			continue
-		}
-
-		nseg := getisOrdSegments(g)
+		nseg := getisOrdSegments(data, nil, locality)
 		if nseg != test.wantSegs {
 			t.Errorf("unexpected number of significant segments for test %d: got:%d want:%d",
 				ti, nseg, test.wantSegs)
@@ -143,12 +136,12 @@ func TestGetisOrd(t *testing.T) {
 	}
 }
 
-func getisOrdSegments(g GetisOrd) int {
-	const thresh = 6
+func getisOrdSegments(data, weight []float64, locality mat.Matrix) int {
+	const thresh = 2
 	var nseg int
 	segstart := -1
-	for i := 0; i < g.Len(); i++ {
-		gi := g.Gstar(i)
+	for i := range data {
+		gi := GetisOrdGStar(i, data, weight, locality)
 		if segstart != -1 {
 			if math.Abs(gi) < thresh {
 				// Filter short segments.
@@ -166,7 +159,7 @@ func getisOrdSegments(g GetisOrd) int {
 			segstart = i
 		}
 	}
-	if segstart != -1 && g.Len()-segstart >= 5 {
+	if segstart != -1 && len(data)-segstart >= 5 {
 		nseg++
 	}
 	return nseg

@@ -11,20 +11,27 @@ import (
 	"gonum.org/v1/gonum/stat"
 )
 
+// TODO(kortschak): Implement weighted routines.
 // TODO(kortschak): Make use of banded matrices when they exist in mat.
 
-// GetisOrd performs Local Getis-Ord G*i statistic calculation.
-type GetisOrd struct {
-	data     *mat.Vector
-	locality *mat.Dense
-
-	mean, s float64
-}
-
-// NewGetisOrd returns a GetisOrd based on the provided data and locality matrix.
-// NewGetisOrd will panic if locality is not a square matrix with dimensions the
-// same as the length of data.
-func NewGetisOrd(data, weights []float64, locality mat.Matrix) GetisOrd {
+// GetisOrdGStar returns the Local Getis-Ord G*i statistic for element of of the
+// weighted data using the provided locality matrix. The returned value is a z-score.
+//
+//  G^*_i = num_i / den_i
+//
+//  num_i = \sum_j (w_{ij} x_j) - \bar X \sum_j w_{ij}
+//  den_i = S \sqrt((n \sum_j w_{ij}^2 - (\sum_j w_{ij})^2)/(n - 1))
+//  \bar X = (\sum_j x_j) / n
+//  S = \sqrt((\sum_j x_j^2)/n - (\bar X)^2)
+//
+// GetisOrdGStar will panic if locality is not a square matrix with dimensions the
+// same as the length of data or if i is not a valid index into data.
+//
+// See doi.org/10.1111%2Fj.1538-4632.1995.tb00912.x.
+//
+// Weighted Getis-Ord G*i is not currently implemented and GetisOrdGStar will
+// panic if weights is not nil.
+func GetisOrdGStar(i int, data, weights []float64, locality mat.Matrix) float64 {
 	if weights != nil {
 		panic("spatial: weighted data not yet implemented")
 	}
@@ -33,41 +40,31 @@ func NewGetisOrd(data, weights []float64, locality mat.Matrix) GetisOrd {
 		panic("spatial: data length mismatch")
 	}
 
-	var g GetisOrd
-	d := make([]float64, len(data))
-	copy(d, data)
-	g.data = mat.NewVector(len(data), d)
-
-	g.locality = mat.DenseCopyOf(locality)
-	g.mean = stat.Mean(data, nil)
-	var ss float64
-	for _, v := range data {
+	n := float64(len(data))
+	mean := stat.Mean(data, weights)
+	var ss, dwd, dww, sw float64
+	for j, v := range data {
 		ss += v * v
+		w := locality.At(i, j)
+		sw += w
+		dwd += w * v
+		dww += w * w
 	}
-	g.s = ss/float64(len(data)) - g.mean*g.mean
+	s := math.Sqrt(ss/n - mean*mean)
 
-	return g
+	return (dwd - mean*sw) / (s * math.Sqrt((n*dww-sw*sw)/(n-1)))
 }
 
-// Len returns the number of data points held by the receiver.
-func (g GetisOrd) Len() int { return g.data.Len() }
-
-// Gstar returns the Local Getis-Ord G* statistic for element i. The
-// returned value is a z-score.
-func (g GetisOrd) Gstar(i int) float64 {
-	wi := g.locality.RowView(i)
-	ws := g.mean * mat.Sum(wi)
-	n := float64(g.data.Len())
-	num := mat.Dot(wi, g.data) - ws
-	den := g.s * math.Sqrt((n*mat.Dot(wi, wi)-ws*ws)/(n-1))
-	return num / den
-}
-
-// GlobalMoransI performs Global Moran's I calculation of spatial autocorrelation.
-// GlobalMoransI returns Moran's I, Var(I) and the z-score associated with those
-// values.
+// GlobalMoransI performs Global Moran's I calculation of spatial autocorrelation
+// for the given data using the provided locality matrix. GlobalMoransI returns
+// Moran's I, Var(I) and the z-score associated with those values.
+// GlobalMoransI will panic if locality is not a square matrix with dimensions the
+// same as the length of data.
 //
-// See https://en.wikipedia.org/wiki/Moran%27s_I.
+// See https://doi.org/10.1111%2Fj.1538-4632.2007.00708.x.
+//
+// Weighted Global Moran's I is not currently implemented and GlobalMoransI will
+// panic if weights is not nil.
 func GlobalMoransI(data, weights []float64, locality mat.Matrix) (i, v, z float64) {
 	if weights != nil {
 		panic("spatial: weighted data not yet implemented")

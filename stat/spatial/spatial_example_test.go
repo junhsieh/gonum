@@ -50,22 +50,20 @@ func ExampleGetisOrd() {
 		0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
 	})
 
-	g := spatial.NewGetisOrd(data, nil, locality)
-
 	for i, v := range data {
-		fmt.Printf("v=%v G*i=% .4v\n", v, g.Gstar(i))
+		fmt.Printf("v=%v G*i=% .4v\n", v, spatial.GetisOrdGStar(i, data, nil, locality))
 	}
 
 	// Output:
 	//
-	// v=0 G*i=-2.273
-	// v=0 G*i=-2.807
-	// v=0 G*i=-0.4678
-	// v=1 G*i= 1.871
-	// v=1 G*i= 4.21
-	// v=1 G*i= 1.871
-	// v=0 G*i= 1.871
-	// v=1 G*i=-0.4678
-	// v=0 G*i=-0.4678
-	// v=0 G*i=-2.273
+	// v=0 G*i=-1.225
+	// v=0 G*i=-1.604
+	// v=0 G*i=-0.2673
+	// v=1 G*i= 1.069
+	// v=1 G*i= 2.405
+	// v=1 G*i= 1.069
+	// v=0 G*i= 1.069
+	// v=1 G*i=-0.2673
+	// v=0 G*i=-0.2673
+	// v=0 G*i=-1.225
 }
